@@ -12,3 +12,8 @@ Various ways to use the CLI:
 ./websub-cli.py subscribe test.db 'https://styx.verver.ch/test/subscriptions' 'https://pubsubhubbub.appspot.com/' 'https://styx.verver.ch/~maks/test-atom-feed.xml' 3600
 
 ./websub-cli.py unsubscribe test.db 'https://styx.verver.ch/test/subscriptions' S88afAmG4xUcE7gswRXanumu
+
+
+To ping the hub (technically proprietary protocol, but widely supported):
+
+curl -d "hub.mode=publish" -d "hub.url=https://styx.verver.ch/~maks/test-feed/feed.xml" https://pubsubhubbub.appspot.com/
