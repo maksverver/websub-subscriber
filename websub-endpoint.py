@@ -67,7 +67,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_error(400)  # Bad request
                     return
 
-                if sub.state not in (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBE_PENDING, SubscriptionState.SUBSCRIBED):
+                if sub.state not in (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBED):
                     logging.warning("Received subscription request for subscription %s in state %s", subscription_id, sub.state)
                     self.send_error(400)  # Bad request
                     return
@@ -81,7 +81,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_error(400)  # Bad request
                     return
 
-                if sub.state not in (SubscriptionState.UNSUBSCRIBE_PENDING, SubscriptionState.UNSUBSCRIBED):
+                if sub.state not in (SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBED):
                     logging.warning("Received unsubscription request for subscription %s in state %s", subscription_id, sub.state)
                     self.send_error(400)  # Bad request
                     return
@@ -116,7 +116,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         if url.path.startswith('/subscriptions/'):
             subscription_id = url.path[len('/subscriptions/'):]
             sub = db.ReadSubscription(subscription_id)
-            if not sub or sub.state in (SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBE_PENDING, SubscriptionState.UNSUBSCRIBED):
+            if not sub or sub.state not in (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBED):
                 # 410 Gone should cause the hub to unsubscribe and stop posting data.
                 logging.warning("Received POST request for subscription %s in state %s", subscription_id, sub.state if sub is not None else 'Not found')
                 self.send_error(410)  # Gone

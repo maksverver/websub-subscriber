@@ -9,35 +9,33 @@ from dataclasses import dataclass
 
 # Describes possible states for each subscription.
 #
-# Feeds must go through states in order, though the PENDING states can be
-# skipped if # hub confirms the (un)subscription while the request t
-# (un)subscribe is in progress.
 # Possible lifecycles:
 #
-# SUBSCRIBING -> SUBSCRIBE_PENDING -> SUBSCRIBED -> UNSUBSCRIBING -> UNSUBSCRIBE_PENDING -> UNSUBSCRIBED
-# SUBSCRIBING -> SUBSCRIBE_PENDING -> DENIED
-# SUBSCRIBING -> SUBSCRIBE_PENDING -> SUBSCRIBED -> DENIED
+# SUBSCRIBING -> SUBSCRIBED -> UNSUBSCRIBING -> UNSUBSCRIBED
+# SUBSCRIBING -> DENIED
+# SUBSCRIBING -> SUBSCRIBED -> DENIED
+#
+# It's possible to restart a subscription when it is in a terminal state,
+# but usually it's better to create a new subscription with a seperate
+# subscription_id (the w3c spec also recommends this).
+#
+# To renew a lease, no state transition is needed. Simply call subscribe again
+# to extend the lifetime of the lease.
 #
 class SubscriptionState:
-    # Initial state. Client intends to subscribe, but hub has not yet been called.
+    # Client intends to subscribe, but hub has not yet confirmed. (Initial state.)
     SUBSCRIBING = 'subscribing'
-
-    # Client has made a subscribe request to the hub, but no reply received yet.
-    SUBSCRIBE_PENDING = 'subscribe-pending'
 
     # Hub has confirmed the subscription.
     SUBSCRIBED = 'subscribed'
 
-    # Hub has denied the subscription.
+    # Hub has denied the subscription. (Terminal state.)
     DENIED = 'denied'
 
-    # Client intends to unsubscribe, but hub has not yet been called.
+    # Client intends to unsubscribe, but hub has not yet confirmed.
     UNSUBSCRIBING = 'unsubscribing'
 
-    # Client has made an unsubscribe request to the hub, but no reply received yet.
-    UNSUBSCRIBE_PENDING = 'unsubscribe-pending'
-
-    # Hub has confirmed the unsubscription.
+    # Hub has confirmed the unsubscription. (Terminal state.)
     UNSUBSCRIBED = 'unsubscribed'
 
 
@@ -91,14 +89,14 @@ class SubscriptionsDb:
         sub.expires_at = expires_at
 
     def ConfirmSubscription(self, sub, lease_seconds):
-        self.ChangeSubscriptionState(sub, SubscriptionState.SUBSCRIBED, (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBE_PENDING, SubscriptionState.SUBSCRIBED), lease_seconds=lease_seconds)
+        self.ChangeSubscriptionState(sub, SubscriptionState.SUBSCRIBED, (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBED), lease_seconds=lease_seconds)
 
     def DenySubscription(self, sub, reason):
         # TODO later: store reason in db for debugging?
-        self.ChangeSubscriptionState(sub, SubscriptionState.DENIED, (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBE_PENDING, SubscriptionState.SUBSCRIBED, SubscriptionState.DENIED), lease_seconds=-1)
+        self.ChangeSubscriptionState(sub, SubscriptionState.DENIED, (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBED, SubscriptionState.DENIED), lease_seconds=-1)
 
     def ConfirmUnsubscription(self, sub):
-        self.ChangeSubscriptionState(sub, SubscriptionState.UNSUBSCRIBED, (SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBE_PENDING, SubscriptionState.UNSUBSCRIBED), lease_seconds=-1)
+        self.ChangeSubscriptionState(sub, SubscriptionState.UNSUBSCRIBED, (SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBED), lease_seconds=-1)
 
     def AddUpdate(self, sub, content_type, content):
         # Maybe: get topic_url and hub_url from Link header instead?

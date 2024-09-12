@@ -49,8 +49,6 @@ def Subscribe(db_path, callback_base_url, hub_url, topic_url, lease_seconds=None
     response = requests.post(hub_url, data=data)
     if response.status_code != 202:  # Accepted
         raise Exception('Unexpected response code from hub: %d' % (response.status_code,))
-    # TODO: catch exception that occurs when subscription is already in "subscribed" state
-    db.ChangeSubscriptionState(sub, SubscriptionState.SUBSCRIBE_PENDING, (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBE_PENDING))
     print(sub)
 
 
@@ -59,7 +57,7 @@ def Unsubscribe(db_path, callback_base_url, subscription_id):
     sub = db.ReadSubscription(subscription_id)
     if not sub:
         raise Exception('Subscription not found')
-    db.ChangeSubscriptionState(sub, SubscriptionState.UNSUBSCRIBING, (SubscriptionState.SUBSCRIBED, SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBE_PENDING))
+    db.ChangeSubscriptionState(sub, SubscriptionState.UNSUBSCRIBING, (SubscriptionState.SUBSCRIBED, SubscriptionState.UNSUBSCRIBING))
     data = {
         'hub.mode': 'unsubscribe',
         'hub.callback': _MakeCallbackUrl(callback_base_url, sub),
@@ -68,8 +66,6 @@ def Unsubscribe(db_path, callback_base_url, subscription_id):
     response = requests.post(sub.hub_url, data=data)
     if response.status_code != 202:  # Accepted
         raise Exception('Unexpected response code from hub: %d' % (response.status_code,))
-    # TODO: catch exception that occurs when subscription is already in "unsubscribed" state
-    db.ChangeSubscriptionState(sub, SubscriptionState.UNSUBSCRIBE_PENDING, (SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBE_PENDING))
 
 
 def PrintUsage(argv0):
