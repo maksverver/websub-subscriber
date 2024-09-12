@@ -19,16 +19,7 @@ CREATE TABLE subscriptions(
     -- websub secret (currently not used)
     secret TEXT,
 
-    -- State of the subscription. One of: 
-    --
-    --  'subscribing'
-    --  'subscribe-pending' (after request to hub is sent succesfully)
-    --  'subscribed' (after hub has confirmed subscription)
-    --  'denied' (if hub denied subscription)
-    --  'unsubscribing'
-    --  'unsubscribe-pending' (after request to hub is sent succesfully)
-    --  'unsubscribed' (after hub has confirmed unsubscription)
-    --
+    -- State of the subscription (see SubscriptionState in database.py for details)
     state TEXT NOT NULL,
 
     -- UNIX timestamp reflecting when the state last changed.

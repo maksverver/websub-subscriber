@@ -6,6 +6,41 @@ import secrets
 import time
 from dataclasses import dataclass
 
+
+# Describes possible states for each subscription.
+#
+# Feeds must go through states in order, though the PENDING states can be
+# skipped if # hub confirms the (un)subscription while the request t
+# (un)subscribe is in progress.
+# Possible lifecycles:
+#
+# SUBSCRIBING -> SUBSCRIBE_PENDING -> SUBSCRIBED -> UNSUBSCRIBING -> UNSUBSCRIBE_PENDING -> UNSUBSCRIBED
+# SUBSCRIBING -> SUBSCRIBE_PENDING -> DENIED
+# SUBSCRIBING -> SUBSCRIBE_PENDING -> SUBSCRIBED -> DENIED
+#
+class SubscriptionState:
+    # Initial state. Client intends to subscribe, but hub has not yet been called.
+    SUBSCRIBING = 'subscribing'
+
+    # Client has made a subscribe request to the hub, but no reply received yet.
+    SUBSCRIBE_PENDING = 'subscribe-pending'
+
+    # Hub has confirmed the subscription.
+    SUBSCRIBED = 'subscribed'
+
+    # Hub has denied the subscription.
+    DENIED = 'denied'
+
+    # Client intends to unsubscribe, but hub has not yet been called.
+    UNSUBSCRIBING = 'unsubscribing'
+
+    # Client has made an unsubscribe request to the hub, but no reply received yet.
+    UNSUBSCRIBE_PENDING = 'unsubscribe-pending'
+
+    # Hub has confirmed the unsubscription.
+    UNSUBSCRIBED = 'unsubscribed'
+
+
 @dataclass
 class Subscription:
     subscription_id: str
@@ -24,7 +59,7 @@ class SubscriptionsDb:
 
     def CreateSubscription(self, hub_url, topic_url):
         subscription_id = secrets.token_urlsafe(18)  # 18 * 8 = 144 bits of entropy
-        sub = Subscription(subscription_id=subscription_id, topic_url=topic_url, hub_url=hub_url, secret=None, state='subscribing', last_modified=time.time(), expires_at=None)
+        sub = Subscription(subscription_id=subscription_id, topic_url=topic_url, hub_url=hub_url, secret=None, state=SubscriptionState.SUBSCRIBING, last_modified=time.time(), expires_at=None)
         self.db.execute('INSERT INTO subscriptions(subscription_id, hub_url, topic_url, secret, state, last_modified, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 (sub.subscription_id, sub.hub_url, sub.topic_url, sub.secret, sub.state, sub.last_modified, sub.expires_at))
         return sub
@@ -56,14 +91,14 @@ class SubscriptionsDb:
         sub.expires_at = expires_at
 
     def ConfirmSubscription(self, sub, lease_seconds):
-        self.ChangeSubscriptionState(sub, 'subscribed', ('subscribing', 'subscribe-pending', 'subscribed'), lease_seconds=lease_seconds)
+        self.ChangeSubscriptionState(sub, SubscriptionState.SUBSCRIBED, (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBE_PENDING, SubscriptionState.SUBSCRIBED), lease_seconds=lease_seconds)
 
     def DenySubscription(self, sub, reason):
         # TODO later: store reason in db for debugging?
-        self.ChangeSubscriptionState(sub, 'denied', ('subscribing', 'subscribe-pending', 'subscribed', 'denied'), lease_seconds=-1)
+        self.ChangeSubscriptionState(sub, SubscriptionState.DENIED, (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBE_PENDING, SubscriptionState.SUBSCRIBED, SubscriptionState.DENIED), lease_seconds=-1)
 
     def ConfirmUnsubscription(self, sub):
-        self.ChangeSubscriptionState(sub, 'unsubscribed', ('unsubscribing', 'unsubscribe-pending', 'unsubscribed'), lease_seconds=-1)
+        self.ChangeSubscriptionState(sub, SubscriptionState.UNSUBSCRIBED, (SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBE_PENDING, SubscriptionState.UNSUBSCRIBED), lease_seconds=-1)
 
     def AddUpdate(self, sub, content_type, content):
         # Maybe: get topic_url and hub_url from Link header instead?

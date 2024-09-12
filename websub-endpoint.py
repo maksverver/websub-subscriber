@@ -6,7 +6,7 @@ import logging
 import sys
 from urllib.parse import urlparse, parse_qs
 
-from database import SubscriptionsDb
+from database import SubscriptionsDb, SubscriptionState
 import verification
 
 db = None
@@ -67,7 +67,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_error(400)  # Bad request
                     return
 
-                if sub.state not in ('subscribing', 'subscribe-pending', 'subscribed'):
+                if sub.state not in (SubscriptionState.SUBSCRIBING, SubscriptionState.SUBSCRIBE_PENDING, SubscriptionState.SUBSCRIBED):
                     logging.warning("Received subscription request for subscription %s in state %s", subscription_id, sub.state)
                     self.send_error(400)  # Bad request
                     return
@@ -81,7 +81,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_error(400)  # Bad request
                     return
 
-                if sub.state not in ('unsubscribe-pending', 'unsubscribed'):
+                if sub.state not in (SubscriptionState.UNSUBSCRIBE_PENDING, SubscriptionState.UNSUBSCRIBED):
                     logging.warning("Received unsubscription request for subscription %s in state %s", subscription_id, sub.state)
                     self.send_error(400)  # Bad request
                     return
@@ -89,7 +89,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 db.ConfirmUnsubscription(sub)
                 return self._SendPlainTextResponse(hub_challenge)
 
-            if hub_mode == 'denied' and hub_topic:
+            if hub_mode == SubscriptionState.DENIED and hub_topic:
                 logging.warning("Subscription %s was denied (reason: %s)", subscription_id, hub_reason)
                 db.DenySubscription(sub, hub_reason)
                 # Alternatively, we could send 204 No Content, but it looks weird in the browser (no page refresh)
@@ -116,7 +116,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         if url.path.startswith('/subscriptions/'):
             subscription_id = url.path[len('/subscriptions/'):]
             sub = db.ReadSubscription(subscription_id)
-            if not sub or sub.state in ('unsubscribing', 'unsubscribe-pending', 'unsubscribed'):
+            if not sub or sub.state in (SubscriptionState.UNSUBSCRIBING, SubscriptionState.UNSUBSCRIBE_PENDING, SubscriptionState.UNSUBSCRIBED):
                 # 410 Gone should cause the hub to unsubscribe and stop posting data.
                 logging.warning("Received POST request for subscription %s in state %s", subscription_id, sub.state if sub is not None else 'Not found')
                 self.send_error(410)  # Gone
