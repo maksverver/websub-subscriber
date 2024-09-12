@@ -50,7 +50,7 @@ class SubscriptionsDb:
                 "UPDATE subscriptions SET state=?, last_modified=?, expires_at=? WHERE subscription_id=? AND state IN (" + ','.join(tuple('?'*len(old_states))) + ")",
                 (new_state, last_modified, expires_at, sub.subscription_id) + old_states)
         if cur.rowcount != 1:
-            raise Exception("Could not transition subscription %s from to %s", sub.subscription_id, new_state)
+            raise Exception("Could not transition subscription %s from %s to %s" % (sub.subscription_id, sub.state, new_state))
         sub.state = new_state
         sub.last_modified = last_modified
         sub.expires_at = expires_at
