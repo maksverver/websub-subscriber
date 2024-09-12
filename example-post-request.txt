@@ -1,0 +1,20 @@
+Content-Length: 632
+Link: <https://styx.verver.ch/~maks/test-atom-feed.xml>; rel=self, <http://pubsubhubbub.appspot.com/>; rel=hub
+Content-Type: application/atom+xml
+Cache-Control: no-cache,max-age=0
+Pragma: no-cache
+Accept: */*
+From: googlebot(at)googlebot.com
+User-Agent: FeedFetcher-Google; (+http://www.google.com/feedfetcher.html)
+Accept-Encoding: gzip, deflate, br
+
+
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Example Feed</title><subtitle>A subtitle.</subtitle><link href="https://styx.verver.ch/~maks/test-atom-feed.xml" rel="self" /><id>urn:uuid:58d15791-fb8c-411f-9587-5b048a3265ae</id><updated>2024-09-12T16:24:11Z</updated><entry>
+		<title>Second Entry</title>
+		<id>urn:uuid:86e7d787-ed37-4899-8b2c-151cd72562c3</id>
+        <published>2024-09-12T16:24:11Z</published>
+		<updated>2024-09-12T16:24:11Z</updated>
+        <content type="text">This is my second feed entry.</content>
+        <author><name>Maks Verver</name></author>
+	</entry></feed>
