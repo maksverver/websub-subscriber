@@ -52,6 +52,24 @@ def Subscribe(db_path, callback_base_url, hub_url, topic_url, lease_seconds=None
     print(sub)
 
 
+def Renew(db_path, callback_base_url, subscription_id, lease_seconds=None):
+    db = SubscriptionsDb(db_path)
+    sub = db.ReadSubscription(subscription_id)
+    if not sub:
+        raise Exception('Subscription not found')
+    data = {
+        'hub.mode': 'subscribe',
+        'hub.callback': _MakeCallbackUrl(callback_base_url, sub),
+        'hub.topic': sub.topic_url,
+    }
+    if lease_seconds is not None:
+        data['hub.lease_seconds'] = str(int(lease_seconds))  # truncate float
+    response = requests.post(sub.hub_url, data=data)
+    if response.status_code != 202:  # Accepted
+        raise Exception('Unexpected response code from hub: %d' % (response.status_code,))
+    print(sub)
+
+
 def Unsubscribe(db_path, callback_base_url, subscription_id):
     db = SubscriptionsDb(db_path)
     sub = db.ReadSubscription(subscription_id)
@@ -71,6 +89,7 @@ def Unsubscribe(db_path, callback_base_url, subscription_id):
 def PrintUsage(argv0):
     print('Usage:')
     print('\t' +  argv0 + ' subscribe   <database> <callback-base-url> <hub-url> <topic-url> [<lease-seconds>]')
+    print('\t' +  argv0 + ' renew       <database> <callback-base-url> <subscription-id> [<lease-seconds>]')
     print('\t' +  argv0 + ' unsubscribe <database> <callback-base-url> <subscription-id>')
     print('\t' +  argv0 + ' list        <database> <hub-url> <topic-url>')
     print('\t' +  argv0 + ' verify      <callback-base-url>')
@@ -83,6 +102,10 @@ def HandleArgs(args):
     if args[0] == 'subscribe':
         if len(args) < 5 or len(args) > 6: return False
         Subscribe(*args[1:])
+
+    if args[0] == 'renew':
+        if len(args) < 4 or len(args) > 5: return False
+        Renew(*args[1:])
         
     elif args[0] == 'unsubscribe':
         if len(args) != 4: return False
