@@ -19,12 +19,12 @@ def ListSubscriptions(db_path, hub_url, topic_url):
     return True
 
 
-# This calls <callback_base_url>?validate=random-challenge to verify the
+# This calls <callback_base_url>?verify=random-challenge to verify the
 # callback URL is accessible (might still be firewalled though).
 def VerifyCallback(callback_base_url):
     challenge = verification.GenerateChallenge()
     response_text = verification.GenerateResponse(challenge)
-    response = requests.get(callback_base_url, params={'validate': challenge})
+    response = requests.get(callback_base_url, params={'verify': challenge})
     if response.status_code != 200:
         raise Exception('Unexpected status code: %d', response.status_code)
     if response.text.strip() != response_text:

@@ -30,7 +30,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         query = dict((key, values[-1]) for (key, values) in parse_qs(url.query).items())
 
         if url.path == '/subscriptions':
-            challenge = query.get('validate', None)
+            challenge = query.get('verify', None)
             if not challenge:
                 self.send_error(400, explain='Missing challenge')
                 return
